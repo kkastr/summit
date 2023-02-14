@@ -43,7 +43,9 @@ def getComments(url):
 
     df = pd.DataFrame(data=rows, columns=cols)
 
-    df.to_csv(f'{submission.id}_comments.csv', index=False)
+    # save for testing to avoid sending tons of requests to reddit
+
+    # df.to_csv(f'{submission.id}_comments.csv', index=False)
 
     return df
 

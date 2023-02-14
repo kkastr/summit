@@ -1,26 +1,20 @@
 import pandas as pd
+import gradio as gr
 from transformers import pipeline
 from scraper import getComments
 
 
 def chunk(a):
-    n = round(0.2 * len(a))
+    n = round(0.3 * len(a))
     k, m = divmod(len(a), n)
     return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
-def main():
+def main(url: str) -> str:
 
-    durl = "https://www.reddit.com/r/news/comments/111lv6d/there_were_more_toxic_chemicals_on_train_that/"
+    # pushshift.io submission comments api doesn't work so have to use praw
 
-    # here you would probably check if the post id already exists in some DB
-    # so that you don't have to refetch comments.
-    # if pushshift.io submission comments api starts working again,
-    # could probably make this all realtime.
-
-    # df = getComments(url=durl)
-    #
-    df = pd.read_csv("111lv6d_comments.csv")
+    df = getComments(url=url)
 
     smax = df.score.max()
 
@@ -31,7 +25,7 @@ def main():
     if len(df.text) >= 200:
         df = df[:200]
 
-    # this is to deal with giving the model too large of an input which makes things very slow
+    # chunking to handle giving the model too large of an input which crashes
     chunked = list(chunk(df.text))
 
     nlp = pipeline('summarization')
@@ -39,6 +33,7 @@ def main():
     lst_summaries = []
 
     for grp in chunked:
+        # treating a group of comments as one block of text
         result = nlp(grp.str.cat(), max_length=500)[0]["summary_text"]
         lst_summaries.append(result)
 
@@ -46,8 +41,11 @@ def main():
 
     thread_summary = nlp(ntext, max_length=500)[0]["summary_text"].replace(" .", ".")
 
-    print(thread_summary)
+    return thread_summary
 
 
 if __name__ == "__main__":
-    main()
+
+    demo = gr.Interface(fn=main, inputs="text", outputs="text")
+
+    demo.launch()
