@@ -18,10 +18,11 @@ def main(url: str) -> str:
 
     smax = df.score.max()
 
-    threshold = round(0.1 * smax)
+    threshold = round(0.05 * smax)
 
     df = df[df.score >= threshold]
 
+    # empirically, having more than 200 comments doesn't change much, but slows down the code.
     if len(df.text) >= 200:
         df = df[:200]
 
@@ -37,15 +38,25 @@ def main(url: str) -> str:
         result = nlp(grp.str.cat(), max_length=500)[0]["summary_text"]
         lst_summaries.append(result)
 
-    ntext = ' '.join(lst_summaries)
+    stext = ' '.join(lst_summaries)
 
-    thread_summary = nlp(ntext, max_length=500)[0]["summary_text"].replace(" .", ".")
+    # thread_summary = nlp(ntext, max_length=500)[0]["summary_text"].replace(" .", ".")
 
-    return thread_summary
+    return df.submission_title.unique()[0] + '\n' + '\n' + stext
 
 
 if __name__ == "__main__":
 
-    demo = gr.Interface(fn=main, inputs="text", outputs="text")
+    with gr.Blocks(css=".gradio-container {max-width: 900px; margin: auto;}") as demo:
+        submission_url = gr.Textbox(label='Post URL')
+
+        sub_btn = gr.Button("Summarize")
+
+        summary = gr.Textbox(label='Comment Summary')
+
+        sub_btn.click(fn=main, inputs=submission_url, outputs=summary)
 
     demo.launch()
+    # demo = gr.Interface(fn=main, inputs="text", outputs="text")
+
+    # demo.launch()
