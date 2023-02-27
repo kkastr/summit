@@ -1,6 +1,5 @@
 import praw
 import pandas as pd
-from tqdm import tqdm
 from api_keys import client_id, client_secret, user_agent, username
 
 

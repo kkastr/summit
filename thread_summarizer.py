@@ -1,5 +1,6 @@
 import pandas as pd
 import gradio as gr
+import re
 from transformers import pipeline
 from scraper import getComments
 
@@ -10,11 +11,17 @@ def chunk(a):
     return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
-def main(url: str) -> str:
+def preprocessText(df):
+    df["text"] = df["text"].apply(lambda x: re.sub(r"http\S+", "", x, flags=re.M))
+    df["text"] = df["text"].apply(lambda x: re.sub(r"^>.+", "", x, flags=re.M))
+    return df
+
+
+def main(url: str, summary_length: str = "Short") -> str:
 
     # pushshift.io submission comments api doesn't work so have to use praw
 
-    df = getComments(url=url)
+    df = preprocessText(getComments(url=url))
 
     smax = df.score.max()
 
@@ -29,7 +36,7 @@ def main(url: str) -> str:
     # chunking to handle giving the model too large of an input which crashes
     chunked = list(chunk(df.text))
 
-    nlp = pipeline('summarization')
+    nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-6")
 
     lst_summaries = []
 
@@ -38,11 +45,13 @@ def main(url: str) -> str:
         result = nlp(grp.str.cat(), max_length=500)[0]["summary_text"]
         lst_summaries.append(result)
 
-    stext = ' '.join(lst_summaries)
+    stext = ' '.join(lst_summaries).replace(" .", ".")
 
-    # thread_summary = nlp(ntext, max_length=500)[0]["summary_text"].replace(" .", ".")
-
-    return df.submission_title.unique()[0] + '\n' + '\n' + stext
+    if summary_length == "Short":
+        thread_summary = nlp(stext, max_length=500)[0]["summary_text"].replace(" .", ".")
+        return df.submission_title.unique()[0] + '\n' + '\n' + thread_summary
+    else:
+        return df.submission_title.unique()[0] + '\n' + '\n' + stext
 
 
 if __name__ == "__main__":
@@ -50,13 +59,12 @@ if __name__ == "__main__":
     with gr.Blocks(css=".gradio-container {max-width: 900px; margin: auto;}") as demo:
         submission_url = gr.Textbox(label='Post URL')
 
+        length_choice = gr.Radio(label='Summary Length', value="Short", choices=["Short", "Long"])
+
         sub_btn = gr.Button("Summarize")
 
         summary = gr.Textbox(label='Comment Summary')
 
-        sub_btn.click(fn=main, inputs=submission_url, outputs=summary)
+        sub_btn.click(fn=main, inputs=[submission_url, length_choice], outputs=summary)
 
     demo.launch()
-    # demo = gr.Interface(fn=main, inputs="text", outputs="text")
-
-    # demo.launch()
