@@ -1,9 +1,15 @@
 import praw
+import praw.exceptions as redditexception
 import pandas as pd
-from api_keys import client_id, client_secret, user_agent, username
+import boto3
 
 
 def getComments(url):
+
+    ssm = boto3.client('ssm')
+    cid = ssm.get_parameter(Name='client_id', WithDecryption=True)['Parameter']['Value']
+    csecret = ssm.get_parameter(Name='client_secret', WithDecryption=True)['Parameter']['Value']
+    user_agent = ssm.get_parameter(Name='user_agent', WithDecryption=True)['Parameter']['Value']
 
     cols = [
         "text",
@@ -16,10 +22,14 @@ def getComments(url):
     ]
 
     reddit = praw.Reddit(
-        client_id=client_id, client_secret=client_secret, user_agent=user_agent, username=username
+        client_id=cid , client_secret=csecret, user_agent=user_agent
     )
 
-    submission = reddit.submission(url=url)
+    try:
+        submission = reddit.submission(url=url)
+    except redditexception.InvalidURL:
+        print("The URL is invalid. Make sure that you have included the submission id")
+
     submission.comments.replace_more(limit=0)
     rows = []
 

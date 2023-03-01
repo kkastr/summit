@@ -17,7 +17,7 @@ def preprocessText(df):
     return df
 
 
-def main(url: str, summary_length: str = "Short") -> str:
+def summarizer(url: str, summary_length: str = "Short") -> str:
 
     # pushshift.io submission comments api doesn't work so have to use praw
 
@@ -29,14 +29,14 @@ def main(url: str, summary_length: str = "Short") -> str:
 
     df = df[df.score >= threshold]
 
-    # empirically, having more than 200 comments doesn't change much, but slows down the code.
+    # empirically, having more than 200 comments doesn't change much but slows down the summarizer.
     if len(df.text) >= 200:
         df = df[:200]
 
     # chunking to handle giving the model too large of an input which crashes
     chunked = list(chunk(df.text))
 
-    nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-6")
+    nlp = pipeline('summarization', model="./model/")
 
     lst_summaries = []
 
@@ -65,6 +65,6 @@ if __name__ == "__main__":
 
         summary = gr.Textbox(label='Comment Summary')
 
-        sub_btn.click(fn=main, inputs=[submission_url, length_choice], outputs=summary)
+        sub_btn.click(fn=summarizer, inputs=[submission_url, length_choice], outputs=summary)
 
-    demo.launch()
+    demo.launch(server_port=8080, enable_queue=False)
