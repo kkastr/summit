@@ -1,7 +1,7 @@
 data/
 model/
 archive/
-ckd.out
+cdk.out/
 
 api_keys.py
 *.csv
