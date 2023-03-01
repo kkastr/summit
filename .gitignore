@@ -3,6 +3,7 @@ model/
 archive/
 cdk.out/
 
+api_params.toml
 api_keys.py
 *.csv
 
