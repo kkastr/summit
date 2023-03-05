@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import nltk
 import praw
 import tomllib
 import gradio as gr
@@ -9,10 +10,30 @@ import praw.exceptions
 from transformers import pipeline
 
 
-def chunk(a):
+def index_chunk(a):
     n = round(0.3 * len(a))
     k, m = divmod(len(a), n)
     return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
+
+
+def sentence_chunk(a):
+    sentences = []
+    buffer = ""
+
+    # the 512 token threshold is empirical
+
+    for item in a:
+        token_length_estimation = len(nltk.word_tokenize(buffer + item))
+
+        if token_length_estimation > 512:
+            sentences.append(buffer)
+            buffer = ""
+
+        buffer += item
+
+    sentences.append(buffer)
+
+    return sentences
 
 
 def preprocessData(df):
@@ -30,12 +51,18 @@ def preprocessData(df):
         df = df[:200]
 
     # chunking to handle giving the model too large of an input which crashes
-    chunked = list(chunk(df.text))
+
+    # chunked = list(index_chunk(df.text))
+    chunked = sentence_chunk(df.text)
 
     return chunked
 
 
 def getComments(url, debug=False):
+
+    if debug and os.path.isfile('./debug_comments.csv'):
+        df = pd.read_csv("./debug_comments.csv")
+        return df
 
     api_keys = tomllib.load(open("api_params.toml", 'rb'))
 
@@ -47,11 +74,6 @@ def getComments(url, debug=False):
 
     try:
         submission = reddit.submission(url=url)
-        if debug and os.path.isfile(f'./{submission.id}_comments.csv'):
-            df = pd.read_csv(f"./{submission.id}_comments.csv")
-            return df
-        else:
-            pass
     except praw.exceptions.InvalidURL:
         print("The URL is invalid. Make sure that you have included the submission id")
 
@@ -90,7 +112,7 @@ def getComments(url, debug=False):
     if debug:
         # save for debugging to avoid sending tons of requests to reddit
 
-        df.to_csv(f'{submission.id}_comments.csv', index=False)
+        df.to_csv('debug_comments.csv', index=False)
 
     return df
 
@@ -103,13 +125,13 @@ def summarizer(url: str) -> str:
 
     submission_title = df.submission_title.unique()[0]
 
-    nlp = pipeline('summarization', model="model/")
-
     lst_summaries = []
+
+    nlp = pipeline('summarization', model="model/")
 
     for grp in chunked_df:
         # treating a group of comments as one block of text
-        result = nlp(grp.str.cat(), max_length=500)[0]["summary_text"]
+        result = nlp(grp, max_length=500)[0]["summary_text"]
         lst_summaries.append(result)
 
     joined_summaries = ' '.join(lst_summaries).replace(" .", ".")
