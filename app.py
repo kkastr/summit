@@ -3,7 +3,6 @@ import re
 import sys
 import nltk
 import praw
-import tomllib
 import gradio as gr
 import pandas as pd
 import praw.exceptions
@@ -64,13 +63,11 @@ def getComments(url, debug=False):
         df = pd.read_csv("./debug_comments.csv")
         return df
 
-    api_keys = tomllib.load(open("api_params.toml", 'rb'))
+    client_id = os.environ['REDDIT_CLIENT_ID']
+    client_secret = os.environ['REDDIT_CLIENT_SECRET']
+    user_agent = os.environ['REDDIT_USER_AGENT']
 
-    reddit = praw.Reddit(
-        client_id=api_keys['client_id'] ,
-        client_secret=api_keys['client_secret'] ,
-        user_agent=api_keys['user_agent']
-    )
+    reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
 
     try:
         submission = reddit.submission(url=url)
@@ -127,7 +124,7 @@ def summarizer(url: str) -> str:
 
     lst_summaries = []
 
-    nlp = pipeline('summarization', model="model/")
+    nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-6")
 
     for grp in chunked_df:
         # treating a group of comments as one block of text
@@ -146,12 +143,6 @@ def summarizer(url: str) -> str:
 
 
 if __name__ == "__main__":
-    if not os.path.isfile('./api_params.toml'):
-        print("""
-                Could not find api params config file in directory.
-                Please create api_params.toml by following the instructions in the README.
-              """)
-        sys.exit(1)
 
     with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
         submission_url = gr.Textbox(label='Post URL')
