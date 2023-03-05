@@ -1,8 +1,8 @@
 import os
 import re
 import sys
-import toml
 import praw
+import tomllib
 import gradio as gr
 import pandas as pd
 import praw.exceptions
@@ -37,7 +37,7 @@ def preprocessData(df):
 
 def getComments(url, debug=False):
 
-    api_keys = toml.load('./api_params.toml')
+    api_keys = tomllib.load(open("api_params.toml", 'rb'))
 
     reddit = praw.Reddit(
         client_id=api_keys['client_id'] ,
@@ -95,7 +95,7 @@ def getComments(url, debug=False):
     return df
 
 
-def summarizer(url: str, summary_length: str = "Short") -> str:
+def summarizer(url: str) -> str:
 
     # pushshift.io submission comments api doesn't work so have to use praw
     df = getComments(url=url)
@@ -112,13 +112,15 @@ def summarizer(url: str, summary_length: str = "Short") -> str:
         result = nlp(grp.str.cat(), max_length=500)[0]["summary_text"]
         lst_summaries.append(result)
 
-    stext = ' '.join(lst_summaries).replace(" .", ".")
+    joined_summaries = ' '.join(lst_summaries).replace(" .", ".")
 
-    if summary_length == "Short":
-        thread_summary = nlp(stext, max_length=500)[0]["summary_text"].replace(" .", ".")
-        return submission_title + '\n' + '\n' + thread_summary
-    else:
-        return submission_title + '\n' + '\n' + stext
+    total_summary = nlp(joined_summaries, max_length=500)[0]["summary_text"].replace(" .", ".")
+
+    short_output = submission_title + '\n' + '\n' + total_summary
+
+    long_output = submission_title + '\n' + '\n' + joined_summaries
+
+    return short_output, long_output
 
 
 if __name__ == "__main__":
@@ -129,16 +131,18 @@ if __name__ == "__main__":
               """)
         sys.exit(1)
 
-    with gr.Blocks(css=".gradio-container {max-width: 900px; margin: auto;}") as demo:
+    with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
         submission_url = gr.Textbox(label='Post URL')
-
-        length_choice = gr.Radio(label='Summary Length', value="Short", choices=["Short", "Long"])
 
         sub_btn = gr.Button("Summarize")
 
-        summary = gr.Textbox(label='Comment Summary')
+        with gr.Row():
+            short_summary = gr.Textbox(label='Short Comment Summary')
+            long_summary = gr.Textbox(label='Long Comment Summary')
 
-        sub_btn.click(fn=summarizer, inputs=[submission_url, length_choice], outputs=summary)
+        sub_btn.click(fn=summarizer,
+                      inputs=[submission_url],
+                      outputs=[short_summary, long_summary])
 
     try:
         demo.launch()
