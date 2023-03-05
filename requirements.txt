@@ -3,3 +3,4 @@ nltk==3.8.1
 pandas==1.5.3
 praw==7.7.0
 transformers==4.26.1
+torch==1.13.0
