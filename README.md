@@ -1,6 +1,5 @@
 ---
-title: Summit
-emoji: 📊
+title: Summit (Reddit Thread Summarizer)
 colorFrom: green
 colorTo: blue
 sdk: gradio
@@ -10,8 +9,6 @@ app_file: app.py
 pinned: false
 ---
 
-## Reddit Thread Summarizer (Gradio)
+## Reddit Thread Summarizer
 
-## TODO
-
-- [ ] add sentence segmentation to improve performance.
+Leverage the power of the Transformers library and Gradio to automatically generate summaries of comment threads on Reddit! The code uses state-of-the-art NLP models, such as BART, to analyze and extract the most important information from lengthy comment threads on Reddit.
