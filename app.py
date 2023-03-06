@@ -159,8 +159,8 @@ if __name__ == "__main__":
         sub_btn = gr.Button("Summarize")
 
         with gr.Row():
-            short_summary = gr.Textbox(label='Short Comment Summary')
-            long_summary = gr.Textbox(label='Long Comment Summary')
+            short_summary = gr.Textbox(label='Short Summary')
+            long_summary = gr.Textbox(label='Long Summary')
 
         sub_btn.click(fn=summarizer,
                       inputs=[submission_url],
