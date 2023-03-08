@@ -132,8 +132,7 @@ def summarizer(url: str) -> str:
     chunked_df = preprocessData(df)
 
     text = ' '.join(chunked_df)
-    wc_opts = dict(collocations=False, width=1920, height=1080,
-                   background_color=None, mode='RGBA')
+    # transparent bg: background_color=None, mode='RGBA')
     wc_opts = dict(collocations=False, width=1920, height=1080)
     wcloud = WordCloud(**wc_opts).generate(text)
 
