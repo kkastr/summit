@@ -131,7 +131,7 @@ def summarizer(url: str) -> str:
     wc_opts = dict(collocations=False, width=1920, height=1080)
     wcloud = WordCloud(**wc_opts).generate(text)
 
-    fig = plt.figure(figsize=(12, 7))
+    fig = plt.figure(figsize=(16, 10))
     fig.patch.set_alpha(0.0)
     plt.imshow(wcloud)
     plt.axis("off")
