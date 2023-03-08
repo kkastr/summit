@@ -6,6 +6,8 @@ import praw
 import gradio as gr
 import pandas as pd
 import praw.exceptions
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 from transformers import pipeline
 
 
@@ -119,9 +121,18 @@ def summarizer(url: str) -> str:
     # pushshift.io submission comments api doesn't work so have to use praw
     df = getComments(url=url)
     chunked_df = preprocessData(df)
-
     submission_title = df.submission_title.unique()[0]
 
+    text = ' '.join(chunked_df)
+    # transparent bg: background_color=None, mode='RGBA'
+    wc_opts = dict(collocations=False, width=1920, height=1080)
+    wcloud = WordCloud(**wc_opts).generate(text)
+
+    fig = plt.figure(figsize=(12, 7))
+    fig.patch.set_alpha(0.0)
+    plt.imshow(wcloud)
+    plt.axis("off")
+    plt.tight_layout()
     lst_summaries = []
 
     nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-6")
@@ -151,11 +162,13 @@ if __name__ == "__main__":
 
         with gr.Row():
             short_summary = gr.Textbox(label='Short Summary')
-            long_summary = gr.Textbox(label='Long Summary')
+            thread_cloud = gr.Plot(label='Word Cloud')
+
+        long_summary = gr.Textbox(label='Long Summary')
 
         sub_btn.click(fn=summarizer,
                       inputs=[submission_url],
-                      outputs=[short_summary, long_summary])
+                      outputs=[short_summary, long_summary, thread_cloud])
 
     try:
         demo.launch()
