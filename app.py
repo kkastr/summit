@@ -3,12 +3,15 @@ import re
 import sys
 import nltk
 import praw
+import matplotlib
 import gradio as gr
 import pandas as pd
 import praw.exceptions
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from transformers import pipeline
+
+matplotlib.use('Agg')
 
 
 def index_chunk(a):
