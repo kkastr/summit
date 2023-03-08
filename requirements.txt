@@ -6,5 +6,4 @@ praw==7.7.0
 toml==0.10.2
 transformers==4.26.1
 wordcloud==1.8.2.2
-wordcloud.egg==info
-torch==1.13.0
+torch==1.13.1
