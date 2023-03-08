@@ -3,7 +3,7 @@ import re
 import sys
 import nltk
 import praw
-import tomllib
+import toml
 import matplotlib
 import gradio as gr
 import pandas as pd
@@ -69,7 +69,7 @@ def getComments(url, debug=False):
         df = pd.read_csv("./debug_comments.csv")
         return df
 
-    api_keys = tomllib.load(open("api_params.toml", 'rb'))
+    api_keys = toml.load(open("api_params.toml", 'rb'))
 
     reddit = praw.Reddit(
         client_id=api_keys['client_id'] ,
