@@ -136,6 +136,7 @@ def summarizer(url: str) -> str:
     plt.imshow(wcloud)
     plt.axis("off")
     plt.tight_layout()
+
     lst_summaries = []
 
     nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-6")
@@ -153,7 +154,7 @@ def summarizer(url: str) -> str:
 
     long_output = submission_title + '\n' + '\n' + joined_summaries
 
-    return short_output, long_output
+    return short_output, long_output, fig
 
 
 if __name__ == "__main__":
