@@ -119,7 +119,7 @@ def summarizer(url: str) -> str:
     # pushshift.io submission comments api doesn't work so have to use praw
     df = getComments(url=url)
 
-    submission_title = '# ' + df.submission_title.unique()[0]
+    submission_title = '## ' + df.submission_title.unique()[0]
 
     chunked_df = preprocessData(df)
 
