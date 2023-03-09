@@ -26,20 +26,28 @@ Next, install all the requirements for the code,
 pip install -r requirements.txt
 ```
 
-After the installation is complete, run the command below to download all the tokenizers and models needed to run the summarizer.
-
-```bash
-python download_model.py
-```
-
 Finally, you can launch the app from the terminal as shown below, creating a gradio instance at a port in localhost.
 
 ```bash
 python app.py
 ```
 
+## Optional
+
+To avoid getting rate limited you need to have an access token, which you can get from having an account on [huggingface](https://huggingface.co/join).
+
+Once you have an account you can generate a token [here](https://huggingface.co/settings/tokens).
+After obtaining the token, add it to `api_params.toml` as shown.
+
+```toml
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+user_agent = "your-user_agent"
+hf_token = "your-hf-token"
+```
+
 ## TODO
 
 - [x] Add sentence segmentation to improve performance.
-- [ ] Add sentiment analysis to output
-- [ ] Improve sentence segmentation
+- [x] Add sentiment analysis to output.
+- [x] Improve model inference time.
