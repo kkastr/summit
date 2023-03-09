@@ -53,7 +53,6 @@ def preprocessData(df):
 
     # chunking to handle giving the model too large of an input which crashes
 
-    # chunked = list(index_chunk(df.text))
     chunked = sentence_chunk(df.text)
 
     return chunked
@@ -138,17 +137,13 @@ def summarizer(url: str) -> str:
 
     lst_summaries = []
 
-    # nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-3")
-
     for grp in tqdm(chunked_df):
         # treating a group of comments as one block of text
-        # result = nlp(grp, max_length=500)[0]["summary_text"]
         result = sum_api(grp)
         lst_summaries.append(result)
 
     joined_summaries = ' '.join(lst_summaries).replace(" .", ".")
 
-    # total_summary = nlp(joined_summaries, max_length=500)[0]["summary_text"].replace(" .", ".")
     total_summary = sum_api(joined_summaries).replace(" .", ".")
     short_output = submission_title + '\n' + '\n' + total_summary
 
@@ -170,7 +165,7 @@ if __name__ == "__main__":
     model_name = "models/sshleifer/distilbart-cnn-12-6"
 
     if "hf_token" not in api_keys:
-        print("Proceeding without HF api key.")
+        print("Proceeding without HF api key, you might get rate limited")
         sum_api = gr.Interface.load(model_name)
     else:
         sum_api = gr.Interface.load(model_name, api_key=api_keys['hf_token'])
