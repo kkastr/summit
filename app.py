@@ -7,6 +7,7 @@ import toml
 import matplotlib
 import gradio as gr
 import pandas as pd
+from tqdm import tqdm
 import praw.exceptions
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -45,15 +46,10 @@ def preprocessData(df):
     df["text"] = df["text"].apply(lambda x: re.sub(r"http\S+", "", x, flags=re.M))
     df["text"] = df["text"].apply(lambda x: re.sub(r"^>.+", "", x, flags=re.M))
 
-    smax = df.score.max()
-
-    threshold = round(0.05 * smax)
-
-    df = df[df.score >= threshold]
-
-    # empirically, having more than 200 comments doesn't change much but slows down the summarizer.
-    if len(df.text) >= 200:
-        df = df[:200]
+    # the df is sorted by comment score
+    # empirically, having more than 100 comments doesn't change much but slows down the summarizer.
+    if len(df.text) >= 100:
+        df = df[:100]
 
     # chunking to handle giving the model too large of an input which crashes
 
@@ -68,8 +64,6 @@ def getComments(url, debug=False):
     if debug and os.path.isfile('./debug_comments.csv'):
         df = pd.read_csv("./debug_comments.csv")
         return df
-
-    api_keys = toml.load(open("api_params.toml", 'rb'))
 
     reddit = praw.Reddit(
         client_id=api_keys['client_id'] ,
@@ -125,7 +119,7 @@ def getComments(url, debug=False):
 def summarizer(url: str) -> str:
 
     # pushshift.io submission comments api doesn't work so have to use praw
-    df = getComments(url=url)
+    df = getComments(url=url, debug=True)
 
     submission_title = df.submission_title.unique()[0]
 
@@ -136,7 +130,7 @@ def summarizer(url: str) -> str:
     wc_opts = dict(collocations=False, width=1920, height=1080)
     wcloud = WordCloud(**wc_opts).generate(text)
 
-    fig = plt.figure(figsize=(12, 7))
+    fig = plt.figure()
     fig.patch.set_alpha(0.0)
     plt.imshow(wcloud)
     plt.axis("off")
@@ -144,17 +138,18 @@ def summarizer(url: str) -> str:
 
     lst_summaries = []
 
-    nlp = pipeline('summarization', model="model/")
+    # nlp = pipeline('summarization', model="sshleifer/distilbart-cnn-12-3")
 
-    for grp in chunked_df:
+    for grp in tqdm(chunked_df):
         # treating a group of comments as one block of text
-        result = nlp(grp, max_length=500)[0]["summary_text"]
+        # result = nlp(grp, max_length=500)[0]["summary_text"]
+        result = sum_api(grp)
         lst_summaries.append(result)
 
     joined_summaries = ' '.join(lst_summaries).replace(" .", ".")
 
-    total_summary = nlp(joined_summaries, max_length=500)[0]["summary_text"].replace(" .", ".")
-
+    # total_summary = nlp(joined_summaries, max_length=500)[0]["summary_text"].replace(" .", ".")
+    total_summary = sum_api(joined_summaries).replace(" .", ".")
     short_output = submission_title + '\n' + '\n' + total_summary
 
     long_output = submission_title + '\n' + '\n' + joined_summaries
@@ -169,6 +164,16 @@ if __name__ == "__main__":
                 Please create api_params.toml by following the instructions in the README.
               """)
         sys.exit(1)
+
+    api_keys = toml.load("api_params.toml")
+
+    model_name = "models/sshleifer/distilbart-cnn-12-6"
+
+    if "hf_token" not in api_keys:
+        print("Proceeding without HF api key.")
+        sum_api = gr.Interface.load(model_name)
+    else:
+        sum_api = gr.Interface.load(model_name, api_key=api_keys['hf_token'])
 
     with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
         submission_url = gr.Textbox(label='Post URL')
