@@ -4,7 +4,12 @@ Ever wanted to get the gist of a reddit thread without having to sift through me
 
 Leverage the power of the Transformers library and Gradio to automatically generate summaries of comment threads on Reddit! The code uses state-of-the-art NLP models, such as BART, to analyze and extract the most important information from lengthy comment threads on Reddit.
 
-This gradio app takes as input the URL of a Reddit thread and produces a short (and long) summary of the comments therein.
+This gradio app takes as input the URL of a Reddit thread and produces the following from the comments:
+
+- Short summary
+- Long summary
+- Sentiment of summary
+- Word cloud
 
 The model is deployed for online use [here](https://kkastr-summit.hf.space/).
 
