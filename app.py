@@ -46,13 +46,13 @@ def preprocessData(df):
     df["text"] = df["text"].apply(lambda x: re.sub(r"http\S+", "", x, flags=re.M))
     df["text"] = df["text"].apply(lambda x: re.sub(r"^>.+", "", x, flags=re.M))
 
-    # the df is sorted by comment score
-    # empirically, having more than 100 comments doesn't change much but slows down the summarizer.
-    if len(df.text) >= 100:
-        df = df[:100]
+    # The df is sorted by comment score
+    # Empirically, having more than ~100 comments doesn't change much but slows down the summarizer.
+    # Slowdown is not present with load api but still seems good to limit low score comments.
+    if len(df.text) >= 128:
+        df = df[:128]
 
     # chunking to handle giving the model too large of an input which crashes
-
     chunked = sentence_chunk(df.text)
 
     return chunked
@@ -118,9 +118,9 @@ def getComments(url, debug=False):
 def summarizer(url: str) -> str:
 
     # pushshift.io submission comments api doesn't work so have to use praw
-    df = getComments(url=url, debug=True)
+    df = getComments(url=url)
 
-    submission_title = df.submission_title.unique()[0]
+    submission_title = '# ' + df.submission_title.unique()[0]
 
     chunked_df = preprocessData(df)
 
@@ -129,11 +129,13 @@ def summarizer(url: str) -> str:
     wc_opts = dict(collocations=False, width=1920, height=1080)
     wcloud = WordCloud(**wc_opts).generate(text)
 
-    fig = plt.figure()
-    fig.patch.set_alpha(0.0)
-    plt.imshow(wcloud)
+    plt.imshow(wcloud, aspect='auto')
     plt.axis("off")
-    plt.tight_layout()
+    plt.gca().set_position([0, 0, 1, 1])
+    plt.autoscale(tight=True)
+    fig = plt.gcf()
+    fig.patch.set_alpha(0.0)
+    fig.set_size_inches((12, 7))
 
     lst_summaries = []
 
@@ -142,14 +144,13 @@ def summarizer(url: str) -> str:
         result = sum_api(grp)
         lst_summaries.append(result)
 
-    joined_summaries = ' '.join(lst_summaries).replace(" .", ".")
+    long_output = ' '.join(lst_summaries).replace(" .", ".")
 
-    total_summary = sum_api(joined_summaries).replace(" .", ".")
-    short_output = submission_title + '\n' + '\n' + total_summary
+    short_output = sum_api(long_output).replace(" .", ".")
 
-    long_output = submission_title + '\n' + '\n' + joined_summaries
+    sentiment = clf_api(short_output)
 
-    return short_output, long_output, fig
+    return submission_title, short_output, long_output, sentiment, fig
 
 
 if __name__ == "__main__":
@@ -162,28 +163,31 @@ if __name__ == "__main__":
 
     api_keys = toml.load("api_params.toml")
 
-    model_name = "models/sshleifer/distilbart-cnn-12-6"
+    sum_model = "models/sshleifer/distilbart-cnn-12-6"
+    clf_model = "models/finiteautomata/bertweet-base-sentiment-analysis"
 
-    if "hf_token" not in api_keys:
-        print("Proceeding without HF api key, you might get rate limited")
-        sum_api = gr.Interface.load(model_name)
-    else:
-        sum_api = gr.Interface.load(model_name, api_key=api_keys['hf_token'])
+    hf_token = (None if "hf_token" not in api_keys else api_keys["hf_token"])
+
+    sum_api = gr.Interface.load(sum_model, api_key=hf_token)
+    clf_api = gr.Interface.load(clf_model, api_key=hf_token)
 
     with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
         submission_url = gr.Textbox(label='Post URL')
 
         sub_btn = gr.Button("Summarize")
 
+        title = gr.Markdown("")
+
         with gr.Row():
             short_summary = gr.Textbox(label='Short Summary')
-            thread_cloud = gr.Plot(label='Word Cloud')
+            summary_sentiment = gr.Label(label='Sentiment')
 
+        thread_cloud = gr.Plot(label='Word Cloud')
         long_summary = gr.Textbox(label='Long Summary')
 
         sub_btn.click(fn=summarizer,
                       inputs=[submission_url],
-                      outputs=[short_summary, long_summary, thread_cloud])
+                      outputs=[title, short_summary, long_summary, summary_sentiment, thread_cloud])
 
     try:
         demo.launch()
