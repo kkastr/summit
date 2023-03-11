@@ -149,7 +149,7 @@ def summarizer(url: str) -> str:
 
     sentiment = clf_api(short_output)
 
-    return submission_title, short_output, long_output, sentiment, fig
+    return gr.update(visible=True), submission_title, short_output, long_output, sentiment, fig
 
 
 if __name__ == "__main__":
