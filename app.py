@@ -162,6 +162,8 @@ if __name__ == "__main__":
     sum_api = gr.Interface.load(sum_model, api_key=hf_token)
     clf_api = gr.Interface.load(clf_model, api_key=hf_token)
 
+    sample_urls = ['https://www.reddit.com/r/wholesome/comments/10ehlxo/he_got_a_strong_message/']
+
     with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
         submission_url = gr.Textbox(label='Post URL')
 
@@ -169,16 +171,25 @@ if __name__ == "__main__":
 
         title = gr.Markdown("")
 
-        with gr.Row():
-            short_summary = gr.Textbox(label='Short Summary')
-            summary_sentiment = gr.Label(label='Sentiment')
+        with gr.Column(visible=False) as result_col:
+            with gr.Row():
+                with gr.Column():
+                    short_summary = gr.Textbox(label='Short Summary')
+                    summary_sentiment = gr.Label(label='Sentiment')
 
-        thread_cloud = gr.Plot(label='Word Cloud')
-        long_summary = gr.Textbox(label='Long Summary')
+                thread_cloud = gr.Plot(label='Word Cloud')
 
-        sub_btn.click(fn=summarizer,
-                      inputs=[submission_url],
-                      outputs=[title, short_summary, long_summary, summary_sentiment, thread_cloud])
+            long_summary = gr.Textbox(label='Long Summary')
+
+        out_lst = [result_col, title, short_summary, long_summary, summary_sentiment, thread_cloud]
+
+        sub_btn.click(fn=summarizer, inputs=[submission_url], outputs=out_lst)
+
+        examples = gr.Examples(examples=sample_urls,
+                               fn=summarizer,
+                               inputs=[submission_url],
+                               outputs=out_lst,
+                               cache_examples=True)
 
     try:
         demo.launch()
