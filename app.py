@@ -171,6 +171,9 @@ if __name__ == "__main__":
     sum_api = gr.Interface.load(sum_model, api_key=hf_token)
     clf_api = gr.Interface.load(clf_model, api_key=hf_token)
 
+    # 'https://www.reddit.com/r/wholesome/comments/uvcck3/man_realises_he_has_a_perfect_life/'
+    # 'https://www.reddit.com/r/politics/comments/11caol9/
+
     sample_urls = ['https://www.reddit.com/r/wholesome/comments/10ehlxo/he_got_a_strong_message/']
 
     with gr.Blocks(css=".gradio-container {max-width: 900px !important; width: 100%}") as demo:
